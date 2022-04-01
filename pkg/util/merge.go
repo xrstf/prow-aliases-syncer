@@ -7,10 +7,18 @@ import (
 	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
 )
 
-func BuildNewOwners(old *prow.OwnersAliases, teams []github.Team) *prow.OwnersAliases {
+func BuildNewOwners(old *prow.OwnersAliases, teams []github.Team, keepUnknownTeams bool) *prow.OwnersAliases {
 	result := &prow.OwnersAliases{}
 
-	for teamName := range old.Aliases {
+	for teamName, members := range old.Aliases {
+		if keepUnknownTeams {
+			if result.Aliases == nil {
+				result.Aliases = map[string][]string{}
+			}
+
+			result.Aliases[teamName] = members
+		}
+
 		for _, team := range teams {
 			if team.Slug == teamName {
 				if result.Aliases == nil {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"time"
 
@@ -24,6 +23,7 @@ type options struct {
 	maxAge       time.Duration
 	dryRun       bool
 	strict       bool
+	keep         bool
 	verbose      bool
 }
 
@@ -45,6 +45,7 @@ func main() {
 	pflag.StringSliceVarP(&opt.branches, "branch", "b", opt.branches, "branch to update (glob expression supported) (can be given multiple times)")
 	pflag.BoolVar(&opt.dryRun, "dry-run", opt.dryRun, "do not actually push to GitHub (repositories will still be cloned and locally updated)")
 	pflag.BoolVarP(&opt.strict, "strict", "s", opt.strict, "compare owners files byte by byte")
+	pflag.BoolVarP(&opt.keep, "keep", "k", opt.keep, "keep unknown teams (do not combine with -strict)")
 	pflag.BoolVarP(&opt.verbose, "verbose", "v", opt.verbose, "Enable more verbose output")
 	pflag.Parse()
 
@@ -153,39 +154,17 @@ func createJobs(ctx context.Context, log logrus.FieldLogger, opt options, repos 
 				continue
 			}
 
-			// ignore branches with broken alisases files
-			existing, err := prow.FromString(b.Aliases)
+			equal, newAliases, err := util.Equal(b.Aliases, teams, opt.strict, opt.keep)
 			if err != nil {
 				blog.WithError(err).Warn("Invalid aliases file.")
 				continue
 			}
 
-			blog.WithField("aliases", existing.Aliases).Debug("Parsed.")
-
-			// compare old state against new state
-			newAliases := util.BuildNewOwners(existing, teams)
-
-			encoded, err := newAliases.ToYAML()
-			if err != nil {
-				blog.WithError(err).Warn("Failed to encode YAML.")
-				continue
-			}
-
-			update := false
-
-			if opt.strict {
-				update = strings.TrimSpace(b.Aliases) != strings.TrimSpace(encoded)
-			} else {
-				existing.Sort()
-				newAliases.Sort()
-				update = !reflect.DeepEqual(existing, newAliases)
-			}
-
-			if update {
+			if !equal {
 				blog.Info("File is not identical.")
 
 				// store the new data so we do not have to generate it again later
-				b.Aliases = encoded
+				b.Aliases = newAliases
 
 				branchesToUpdate = append(branchesToUpdate, b)
 			} else {

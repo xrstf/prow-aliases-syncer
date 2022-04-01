@@ -3,6 +3,7 @@ module go.xrstf.de/prow-aliases-syncer
 go 1.17
 
 require (
+	github.com/go-test/deep v1.0.8
 	github.com/shurcooL/githubv4 v0.0.0-20220115235240-a14260e6f8a2
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/pflag v1.0.5
