@@ -32,7 +32,7 @@ const prBody = `
 This pull request updates the %s file based on the GitHub team associations.
 
 **Release Notes:**
-§§§
+§§§release-note
 NONE
 §§§
 `
