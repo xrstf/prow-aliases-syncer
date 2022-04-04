@@ -9,7 +9,7 @@ import (
 	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
 )
 
-func Equal(oldFileContent string, teams []github.Team, strict bool, keep bool) (bool, string, error) {
+func Equal(oldFileContent string, teams []github.Team, strict bool, keep bool, fileHeader string) (bool, string, error) {
 	oldData, err := prow.FromString(oldFileContent)
 	if err != nil {
 		return false, "", fmt.Errorf("invalid aliases file: %w", err)
@@ -17,7 +17,7 @@ func Equal(oldFileContent string, teams []github.Team, strict bool, keep bool) (
 
 	newData := BuildNewOwners(oldData, teams, keep)
 
-	encoded, err := newData.ToYAML()
+	encoded, err := newData.ToYAML(fileHeader)
 	if err != nil {
 		return false, "", fmt.Errorf("failed to encode YAML: %w", err)
 	}

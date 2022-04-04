@@ -16,8 +16,10 @@ go install go.xrstf.de/prow-aliases-syncer
 
 ```
 Usage of ./prow-aliases-syncer:
+      --body string      file with a template for the PR body
   -b, --branch strings   branch to update (glob expression supported) (can be given multiple times)
       --dry-run          do not actually push to GitHub (repositories will still be cloned and locally updated)
+      --header string    file with header for the generated aliases files
   -k, --keep             keep unknown teams (do not combine with -strict)
   -o, --org string       GitHub organization to work with
   -s, --strict           compare owners files byte by byte
