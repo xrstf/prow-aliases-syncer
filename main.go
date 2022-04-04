@@ -18,13 +18,14 @@ import (
 )
 
 type options struct {
-	organization string
-	branches     []string
-	maxAge       time.Duration
-	dryRun       bool
-	strict       bool
-	keep         bool
-	verbose      bool
+	organization   string
+	branches       []string
+	maxAge         time.Duration
+	dryRun         bool
+	updateDirectly bool
+	strict         bool
+	keep           bool
+	verbose        bool
 }
 
 const prBody = `
@@ -45,6 +46,7 @@ func main() {
 	pflag.StringSliceVarP(&opt.branches, "branch", "b", opt.branches, "branch to update (glob expression supported) (can be given multiple times)")
 	pflag.BoolVar(&opt.dryRun, "dry-run", opt.dryRun, "do not actually push to GitHub (repositories will still be cloned and locally updated)")
 	pflag.BoolVarP(&opt.strict, "strict", "s", opt.strict, "compare owners files byte by byte")
+	pflag.BoolVarP(&opt.updateDirectly, "update", "u", opt.updateDirectly, "do not create pull requests, but directly push into the target branches")
 	pflag.BoolVarP(&opt.keep, "keep", "k", opt.keep, "keep unknown teams (do not combine with -strict)")
 	pflag.BoolVarP(&opt.verbose, "verbose", "v", opt.verbose, "Enable more verbose output")
 	pflag.Parse()
@@ -203,19 +205,21 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 
 		for _, branch := range task.Branches {
 			blog := tlog.WithField("branch", branch.Name)
-
 			newBranch := fmt.Sprintf("update-%s-owners", branch.Name)
 			newBranch = strings.ReplaceAll(newBranch, "/", "-")
 
-			prNumber, err := client.GetPullRequestForBranch(opt.organization, task.Name, branch.Name, newBranch)
-			if err != nil {
-				blog.WithError(err).Warn("Failed to check for existing pull request.")
-				continue
-			}
+			if !opt.updateDirectly {
+				prNumber, err := client.GetPullRequestForBranch(opt.organization, task.Name, branch.Name, newBranch)
+				if err != nil {
+					blog.WithError(err).Warn("Failed to check for existing pull request.")
+					continue
+				}
 
-			if prNumber > 0 {
-				blog.WithField("pr", prNumber).Info("Pull request already open.")
-				continue
+				if prNumber > 0 {
+					blog.WithField("pr", prNumber).Info("Pull request already open.")
+					continue
+				}
+
 			}
 
 			if !cloned {
@@ -239,9 +243,11 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 				continue
 			}
 
-			if err := gitter.CreateBranch(repoDir, newBranch); err != nil {
-				blog.WithError(err).Warn("Failed to create new branch.")
-				continue
+			if !opt.updateDirectly {
+				if err := gitter.CreateBranch(repoDir, newBranch); err != nil {
+					blog.WithError(err).Warn("Failed to create new branch.")
+					continue
+				}
 			}
 
 			filename := filepath.Join(repoDir, prow.OwnersAliasesFilename)
@@ -261,7 +267,11 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 			}
 
 			if opt.dryRun {
-				blog.WithField("new-branch", newBranch).Info("Dry run, not pushing branch.")
+				if !opt.updateDirectly {
+					blog = blog.WithField("new-branch", newBranch)
+				}
+
+				blog.Info("Dry run, not pushing branch.")
 				continue
 			}
 
@@ -270,17 +280,21 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 				continue
 			}
 
-			body := fmt.Sprintf(prBody, prow.OwnersAliasesFilename)
-			body = strings.ReplaceAll(body, "§", "`")
-			body = strings.TrimSpace(body)
+			if opt.updateDirectly {
+				blog.Info("Branch updated.")
+			} else {
+				body := fmt.Sprintf(prBody, prow.OwnersAliasesFilename)
+				body = strings.ReplaceAll(body, "§", "`")
+				body = strings.TrimSpace(body)
 
-			prNumber, err = client.CreatePullRequest(task.ID, branch.Name, newBranch, commitMsg, body)
-			if err != nil {
-				blog.WithError(err).Warn("Failed to create pull request.")
-				continue
+				prNumber, err := client.CreatePullRequest(task.ID, branch.Name, newBranch, commitMsg, body)
+				if err != nil {
+					blog.WithError(err).Warn("Failed to create pull request.")
+					continue
+				}
+
+				blog.WithField("pr", prNumber).Info("Pull request created.")
 			}
-
-			blog.WithField("pr", prNumber).Info("Pull request created.")
 		}
 	}
 

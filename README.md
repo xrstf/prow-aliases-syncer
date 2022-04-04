@@ -21,6 +21,7 @@ Usage of ./prow-aliases-syncer:
   -k, --keep             keep unknown teams (do not combine with -strict)
   -o, --org string       GitHub organization to work with
   -s, --strict           compare owners files byte by byte
+  -u, --update           do not create pull requests, but directly push into the target branches
   -v, --verbose          Enable more verbose output
 ```
 
