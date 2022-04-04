@@ -20,18 +20,19 @@ import (
 )
 
 type options struct {
-	organization   string
-	branches       []string
-	bodyFile       string
-	body           *template.Template
-	headerFile     string
-	header         string
-	maxAge         time.Duration
-	dryRun         bool
-	updateDirectly bool
-	strict         bool
-	keep           bool
-	verbose        bool
+	organization       string
+	targetOrganization string
+	branches           []string
+	bodyFile           string
+	body               *template.Template
+	headerFile         string
+	header             string
+	maxAge             time.Duration
+	dryRun             bool
+	updateDirectly     bool
+	strict             bool
+	keep               bool
+	verbose            bool
 }
 
 const defaultFileHeader = `
@@ -63,7 +64,8 @@ func main() {
 		header: defaultFileHeader,
 	}
 
-	pflag.StringVarP(&opt.organization, "org", "o", opt.organization, "GitHub organization to work with")
+	pflag.StringVarP(&opt.organization, "org", "o", opt.organization, "GitHub organization to load teams from and update repositories in (unless --target-org is given)")
+	pflag.StringVarP(&opt.targetOrganization, "target-org", "t", opt.targetOrganization, "update repositories in this org based on the teams from --org")
 	pflag.StringVar(&opt.bodyFile, "body", opt.bodyFile, "file with a template for the PR body")
 	pflag.StringVar(&opt.headerFile, "header", opt.headerFile, "file with header for the generated aliases files")
 	pflag.StringSliceVarP(&opt.branches, "branch", "b", opt.branches, "branch to update (glob expression supported) (can be given multiple times)")
@@ -72,6 +74,7 @@ func main() {
 	pflag.BoolVarP(&opt.updateDirectly, "update", "u", opt.updateDirectly, "do not create pull requests, but directly push into the target branches")
 	pflag.BoolVarP(&opt.keep, "keep", "k", opt.keep, "keep unknown teams (do not combine with -strict)")
 	pflag.BoolVarP(&opt.verbose, "verbose", "v", opt.verbose, "Enable more verbose output")
+	pflag.DurationVar(&opt.maxAge, "max-age", opt.maxAge, "only update branches with commits within this duration")
 	pflag.Parse()
 
 	// setup logging
@@ -124,6 +127,11 @@ func main() {
 	opt.body = tpl
 
 	logger := log.WithField("org", opt.organization)
+	if opt.targetOrganization != "" {
+		logger = logger.WithField("target", opt.targetOrganization)
+	} else {
+		opt.targetOrganization = opt.organization
+	}
 
 	// setup API client
 	ctx := context.Background()
@@ -152,7 +160,7 @@ func work(ctx context.Context, client *github.Client, log logrus.FieldLogger, op
 	// list all repos with all branches and the OWNERS_ALIASES file in each of them
 	log.Info("Listing repositories and branches…")
 
-	repos, err := client.GetRepositoriesAndBranches(opt.organization)
+	repos, err := client.GetRepositoriesAndBranches(opt.targetOrganization)
 	if err != nil {
 		return err
 	}
@@ -247,7 +255,7 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 
 		cloned := false
 
-		repoURL := fmt.Sprintf("git@github.com:%s/%s.git", opt.organization, task.Name)
+		repoURL := fmt.Sprintf("git@github.com:%s/%s.git", opt.targetOrganization, task.Name)
 		repoDir := filepath.Join(tmpDir, task.Name)
 
 		for _, branch := range task.Branches {
@@ -256,7 +264,7 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 			newBranch = strings.ReplaceAll(newBranch, "/", "-")
 
 			if !opt.updateDirectly {
-				prNumber, err := client.GetPullRequestForBranch(opt.organization, task.Name, branch.Name, newBranch)
+				prNumber, err := client.GetPullRequestForBranch(opt.targetOrganization, task.Name, branch.Name, newBranch)
 				if err != nil {
 					blog.WithError(err).Warn("Failed to check for existing pull request.")
 					continue
@@ -334,7 +342,7 @@ func processTasks(ctx context.Context, client *github.Client, log logrus.FieldLo
 					Filename:   prow.OwnersAliasesFilename,
 					BaseBranch: branch.Name,
 					HeadBranch: newBranch,
-					Org:        opt.organization,
+					Org:        opt.targetOrganization,
 					Repo:       task.Name,
 				}
 
