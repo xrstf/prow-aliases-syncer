@@ -1,6 +1,9 @@
 package github
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/shurcooL/githubv4"
 	"github.com/sirupsen/logrus"
 )
@@ -54,6 +57,10 @@ func (c *Client) GetTeams(org string) ([]Team, error) {
 			Members: members,
 		})
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return strings.ToLower(result[i].Slug) < strings.ToLower(result[j].Slug)
+	})
 
 	return result, nil
 }

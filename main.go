@@ -157,6 +157,12 @@ func work(ctx context.Context, client *github.Client, log logrus.FieldLogger, op
 		return err
 	}
 
+	log.Infof("Found %d teams.", len(teams))
+
+	for _, team := range teams {
+		log.WithField("team", team.Slug).WithField("members", team.Members).Debug("Found team.")
+	}
+
 	// list all repos with all branches and the OWNERS_ALIASES file in each of them
 	log.Info("Listing repositories and branches…")
 

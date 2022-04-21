@@ -1,6 +1,8 @@
 package github
 
 import (
+	"sort"
+	"strings"
 	"time"
 
 	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
@@ -76,6 +78,10 @@ func (c *Client) GetRepositoriesAndBranches(org string) ([]Repository, error) {
 		}
 	}
 
+	sort.Slice(result, func(i, j int) bool {
+		return strings.ToLower(result[i].Name) < strings.ToLower(result[j].Name)
+	})
+
 	return result, nil
 }
 
@@ -121,6 +127,10 @@ func (c *Client) getRepositoriesAndBranches(org string, cursor string) ([]Reposi
 				Aliases:          b.Target.Commit.File.Object.Blob.Text,
 			})
 		}
+
+		sort.Slice(repo.Branches, func(i, j int) bool {
+			return strings.ToLower(repo.Branches[i].Name) < strings.ToLower(repo.Branches[j].Name)
+		})
 
 		result = append(result, repo)
 	}
