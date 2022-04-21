@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/shurcooL/githubv4"
 	"github.com/sirupsen/logrus"
@@ -24,13 +25,29 @@ type repositoriesBranchesQuery struct {
 							Commit struct {
 								OID           string
 								CommittedDate githubv4.DateTime
-								File          struct {
+
+								// fetch the current state of the OWNERS_ALIASES file
+								File struct {
 									Object struct {
 										Blob struct {
 											Text string
 										} `graphql:"... on Blob"`
 									}
 								} `graphql:"file(path: $filename)"`
+
+								// fetch the most recent history for this branch, so we
+								// can check if the activity was only caused by us updating
+								// the owners file, or if there are other commits in here
+								History struct {
+									Nodes []struct {
+										CommittedDate githubv4.DateTime
+										Author        struct {
+											User struct {
+												Login string
+											}
+										}
+									}
+								} `graphql:"history(first: $peek)"`
 							} `graphql:"... on Commit"`
 						}
 					}
@@ -40,7 +57,7 @@ type repositoriesBranchesQuery struct {
 				EndCursor   githubv4.String
 				HasNextPage bool
 			}
-		} `graphql:"repositories(first: 20, orderBy: {field: NAME, direction: ASC}, after: $cursor)"`
+		} `graphql:"repositories(first: 5, orderBy: {field: NAME, direction: ASC}, after: $cursor)"`
 	} `graphql:"organization(login: $login)"`
 }
 
@@ -56,9 +73,17 @@ type Branch struct {
 	Aliases          string
 }
 
-func (c *Client) GetRepositoriesAndBranches(org string) ([]Repository, error) {
+func (c *Client) GetRepositoriesAndBranches(org string, ignoredUsers []string, peekDepth int) ([]Repository, error) {
 	result := []Repository{}
 	cursor := ""
+
+	// secret optimization: if no users are ignored (this should never happen,
+	// as you should always ignore the bot who runs this tool), there is no need
+	// to peek into any commits, we can just take the commitDate from the latest
+	// commit
+	if len(ignoredUsers) == 0 {
+		peekDepth = 0
+	}
 
 	for {
 		var (
@@ -66,7 +91,7 @@ func (c *Client) GetRepositoriesAndBranches(org string) ([]Repository, error) {
 			err   error
 		)
 
-		items, cursor, err = c.getRepositoriesAndBranches(org, cursor)
+		items, cursor, err = c.getRepositoriesAndBranches(org, ignoredUsers, peekDepth, cursor)
 		if err != nil {
 			return nil, err
 		}
@@ -85,12 +110,13 @@ func (c *Client) GetRepositoriesAndBranches(org string) ([]Repository, error) {
 	return result, nil
 }
 
-func (c *Client) getRepositoriesAndBranches(org string, cursor string) ([]Repository, string, error) {
+func (c *Client) getRepositoriesAndBranches(org string, ignoredUsers []string, peekDepth int, cursor string) ([]Repository, string, error) {
 	variables := map[string]interface{}{
 		"filename": githubv4.String(prow.OwnersAliasesFilename),
 		"login":    githubv4.String(org),
 		"prefix":   githubv4.String("refs/heads/"),
 		"cursor":   (*githubv4.String)(nil),
+		"peek":     githubv4.Int(peekDepth),
 	}
 
 	if cursor != "" {
@@ -112,6 +138,7 @@ func (c *Client) getRepositoriesAndBranches(org string, cursor string) ([]Reposi
 	// }
 
 	result := []Repository{}
+	ignored := sets.NewString(ignoredUsers...)
 
 	for _, r := range q.Organization.Repositories.Nodes {
 		repo := Repository{
@@ -121,9 +148,25 @@ func (c *Client) getRepositoriesAndBranches(org string, cursor string) ([]Reposi
 		}
 
 		for _, b := range r.Refs.Nodes {
+			// if the following loop finds no commit (e.g. because we ignore all
+			// relevant users), we want to assume that the branch is "alive" and
+			// needs updating, so that we fail safely (i.e. branches do not get lost
+			// because we didn't peek far enough into their history)
+			mostRecentCommit := b.Target.Commit.CommittedDate.Time
+
+			// look through the most recent N commits and find the most recent one,
+			// while ignoring a certain group of users (i.e. do not count the commits
+			// that this tool is producing)
+			for _, c := range b.Target.Commit.History.Nodes {
+				if !ignored.Has(c.Author.User.Login) {
+					mostRecentCommit = c.CommittedDate.Time
+					break
+				}
+			}
+
 			repo.Branches = append(repo.Branches, Branch{
 				Name:             b.Name,
-				MostRecentCommit: b.Target.Commit.CommittedDate.Time,
+				MostRecentCommit: mostRecentCommit,
 				Aliases:          b.Target.Commit.File.Object.Blob.Text,
 			})
 		}

@@ -23,6 +23,7 @@ type options struct {
 	organization       string
 	targetOrganization string
 	branches           []string
+	ignoredUsers       []string
 	bodyFile           string
 	body               *template.Template
 	headerFile         string
@@ -48,6 +49,9 @@ NONE
 §§§
 `
 
+// number of commits to retrieve per branch to check for the most recent commit
+const peekDepth = 20
+
 type templateData struct {
 	Filename   string
 	BaseBranch string
@@ -69,6 +73,7 @@ func main() {
 	pflag.StringVar(&opt.bodyFile, "body", opt.bodyFile, "file with a template for the PR body")
 	pflag.StringVar(&opt.headerFile, "header", opt.headerFile, "file with header for the generated aliases files")
 	pflag.StringSliceVarP(&opt.branches, "branch", "b", opt.branches, "branch to update (glob expression supported) (can be given multiple times)")
+	pflag.StringSliceVarP(&opt.ignoredUsers, "ignore-user", "i", opt.ignoredUsers, "GitHub usernames which should be ignored when determining the most recent commit on branch (can be given multiple times)")
 	pflag.BoolVar(&opt.dryRun, "dry-run", opt.dryRun, "do not actually push to GitHub (repositories will still be cloned and locally updated)")
 	pflag.BoolVarP(&opt.strict, "strict", "s", opt.strict, "compare owners files byte by byte")
 	pflag.BoolVarP(&opt.updateDirectly, "update", "u", opt.updateDirectly, "do not create pull requests, but directly push into the target branches")
@@ -166,7 +171,7 @@ func work(ctx context.Context, client *github.Client, log logrus.FieldLogger, op
 	// list all repos with all branches and the OWNERS_ALIASES file in each of them
 	log.Info("Listing repositories and branches…")
 
-	repos, err := client.GetRepositoriesAndBranches(opt.targetOrganization)
+	repos, err := client.GetRepositoriesAndBranches(opt.targetOrganization, opt.ignoredUsers, peekDepth)
 	if err != nil {
 		return err
 	}
