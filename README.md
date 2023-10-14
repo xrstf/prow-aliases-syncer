@@ -15,7 +15,7 @@ go install go.xrstf.de/prow-aliases-syncer
 ## Usage
 
 ```
-Usage of ./prow-aliases-syncer:
+Usage of _build/prow-aliases-syncer:
       --body string           file with a template for the PR body
   -b, --branch strings        branch to update (glob expression supported) (can be given multiple times)
       --dry-run               do not actually push to GitHub (repositories will still be cloned and locally updated)
@@ -28,13 +28,14 @@ Usage of ./prow-aliases-syncer:
   -t, --target-org string     update repositories in this org based on the teams from --org
   -u, --update                do not create pull requests, but directly push into the target branches
   -v, --verbose               Enable more verbose output
+  -V, --version               show version info and exit immediately
 ```
 
 For example:
 
 ```bash
 $ export GITHUB_TOKEN=ghp_....
-$ prow-aliases-syncer --org myorg --strict --branch master --branch main --branch 'release/*'
+$ prow-aliases-syncer --org myorg --strict --branch main --branch main --branch 'release/*'
 ```
 
 ## License

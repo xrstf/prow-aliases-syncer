@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"text/template"
 	"time"
@@ -18,6 +19,23 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
+
+// These variables get set by ldflags during compilation.
+var (
+	BuildTag    string
+	BuildCommit string
+	BuildDate   string // RFC3339 format ("2006-01-02T15:04:05Z07:00")
+)
+
+func printVersion() {
+	fmt.Printf(
+		"Prow Aliases Syncer %s (%s), built with %s on %s\n",
+		BuildTag,
+		BuildCommit[:10],
+		runtime.Version(),
+		BuildDate,
+	)
+}
 
 type options struct {
 	organization       string
@@ -34,6 +52,7 @@ type options struct {
 	strict             bool
 	keep               bool
 	verbose            bool
+	version            bool
 }
 
 const defaultFileHeader = `
@@ -79,8 +98,14 @@ func main() {
 	pflag.BoolVarP(&opt.updateDirectly, "update", "u", opt.updateDirectly, "do not create pull requests, but directly push into the target branches")
 	pflag.BoolVarP(&opt.keep, "keep", "k", opt.keep, "keep unknown teams (do not combine with -strict)")
 	pflag.BoolVarP(&opt.verbose, "verbose", "v", opt.verbose, "Enable more verbose output")
+	pflag.BoolVarP(&opt.version, "version", "V", opt.version, "show version info and exit immediately")
 	pflag.DurationVar(&opt.maxAge, "max-age", opt.maxAge, "only update branches with commits within this duration")
 	pflag.Parse()
+
+	if opt.version {
+		printVersion()
+		return
+	}
 
 	// setup logging
 	var log = logrus.New()
@@ -95,11 +120,11 @@ func main() {
 
 	// validate CLI flags
 	if opt.organization == "" {
-		log.Fatal("No -org given.")
+		log.Fatal("No --org given.")
 	}
 
 	if len(opt.branches) == 0 {
-		log.Fatal("No -branch given.")
+		log.Fatal("No --branch given.")
 	}
 
 	token := os.Getenv("GITHUB_TOKEN")
