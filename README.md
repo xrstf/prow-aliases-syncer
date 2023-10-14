@@ -35,7 +35,7 @@ For example:
 
 ```bash
 $ export GITHUB_TOKEN=ghp_....
-$ prow-aliases-syncer --org myorg --strict --branch main --branch main --branch 'release/*'
+$ prow-aliases-syncer --org myorg --strict --branch main --branch 'release/*'
 ```
 
 ## License
