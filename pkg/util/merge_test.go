@@ -1,13 +1,16 @@
+// SPDX-FileCopyrightText: 2023 Christoph Mewes
+// SPDX-License-Identifier: MIT
+
 package util
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/go-test/deep"
+
 	"go.xrstf.de/prow-aliases-syncer/pkg/github"
 	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
-
-	"github.com/go-test/deep"
 )
 
 func TestBuildNewOwners(t *testing.T) {

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Christoph Mewes
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -11,13 +14,13 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+
 	"go.xrstf.de/prow-aliases-syncer/pkg/git"
 	"go.xrstf.de/prow-aliases-syncer/pkg/github"
 	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
 	"go.xrstf.de/prow-aliases-syncer/pkg/util"
-
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/pflag"
 )
 
 // These variables get set by ldflags during compilation.

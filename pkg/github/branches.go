@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2023 Christoph Mewes
+// SPDX-License-Identifier: MIT
+
 package github
 
 import (
@@ -5,11 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"github.com/shurcooL/githubv4"
 	"github.com/sirupsen/logrus"
+
+	"go.xrstf.de/prow-aliases-syncer/pkg/prow"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type repositoriesBranchesQuery struct {
