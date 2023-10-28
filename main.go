@@ -91,18 +91,18 @@ func main() {
 	}
 
 	pflag.StringVarP(&opt.organization, "org", "o", opt.organization, "GitHub organization to load teams from and update repositories in (unless --target-org is given)")
-	pflag.StringVarP(&opt.targetOrganization, "target-org", "t", opt.targetOrganization, "update repositories in this org based on the teams from --org")
-	pflag.StringVar(&opt.bodyFile, "body", opt.bodyFile, "file with a template for the PR body")
-	pflag.StringVar(&opt.headerFile, "header", opt.headerFile, "file with header for the generated aliases files")
-	pflag.StringSliceVarP(&opt.branches, "branch", "b", opt.branches, "branch to update (glob expression supported) (can be given multiple times)")
+	pflag.StringVarP(&opt.targetOrganization, "target-org", "t", opt.targetOrganization, "Update repositories in this org based on the teams from --org")
+	pflag.StringVar(&opt.bodyFile, "body", opt.bodyFile, "File with a template for the PR body")
+	pflag.StringVar(&opt.headerFile, "header", opt.headerFile, "File with header for the generated aliases files")
+	pflag.StringSliceVarP(&opt.branches, "branch", "b", opt.branches, "Branch to update (glob expression supported) (can be given multiple times)")
 	pflag.StringSliceVarP(&opt.ignoredUsers, "ignore-user", "i", opt.ignoredUsers, "GitHub usernames which should be ignored when determining the most recent commit on branch (can be given multiple times)")
-	pflag.BoolVar(&opt.dryRun, "dry-run", opt.dryRun, "do not actually push to GitHub (repositories will still be cloned and locally updated)")
-	pflag.BoolVarP(&opt.strict, "strict", "s", opt.strict, "compare owners files byte by byte")
-	pflag.BoolVarP(&opt.updateDirectly, "update", "u", opt.updateDirectly, "do not create pull requests, but directly push into the target branches")
-	pflag.BoolVarP(&opt.keep, "keep", "k", opt.keep, "keep unknown teams (do not combine with -strict)")
+	pflag.BoolVar(&opt.dryRun, "dry-run", opt.dryRun, "Do not actually push to GitHub (repositories will still be cloned and locally updated)")
+	pflag.BoolVarP(&opt.strict, "strict", "s", opt.strict, "Compare owners files byte by byte")
+	pflag.BoolVarP(&opt.updateDirectly, "update", "u", opt.updateDirectly, "Do not create pull requests, but directly push into the target branches")
+	pflag.BoolVarP(&opt.keep, "keep", "k", opt.keep, "Keep unknown teams (do not combine with -strict)")
 	pflag.BoolVarP(&opt.verbose, "verbose", "v", opt.verbose, "Enable more verbose output")
-	pflag.BoolVarP(&opt.version, "version", "V", opt.version, "show version info and exit immediately")
-	pflag.DurationVar(&opt.maxAge, "max-age", opt.maxAge, "only update branches with commits within this duration")
+	pflag.BoolVarP(&opt.version, "version", "V", opt.version, "Show version info and exit immediately")
+	pflag.DurationVar(&opt.maxAge, "max-age", opt.maxAge, "Only update branches with commits within this duration")
 	pflag.Parse()
 
 	if opt.version {
