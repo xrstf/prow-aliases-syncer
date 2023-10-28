@@ -41,7 +41,7 @@ func (c *Client) GetTeams(org string) ([]Team, error) {
 
 	c.log.WithFields(logrus.Fields{
 		"org": org,
-	}).Debugf("GetTeams()")
+	}).Debug("GetTeams()")
 
 	err := c.client.Query(c.ctx, &q, variables)
 	if err != nil {

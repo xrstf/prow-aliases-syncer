@@ -22,7 +22,7 @@ func (c *Client) CreatePullRequest(repoID githubv4.ID, baseRef, headRef, title, 
 	c.log.WithFields(logrus.Fields{
 		"base": baseRef,
 		"head": headRef,
-	}).Debugf("CreatePullRequest()")
+	}).Debug("CreatePullRequest()")
 
 	input := githubv4.CreatePullRequestInput{
 		RepositoryID:        repoID,
@@ -68,7 +68,7 @@ func (c *Client) GetPullRequestForBranch(org, repo, baseRef, headRef string) (in
 		"repo": repo,
 		"base": baseRef,
 		"head": headRef,
-	}).Debugf("PullRequestForBranchExists()")
+	}).Debug("GetPullRequestForBranch()")
 
 	err := c.client.Query(c.ctx, &q, variables)
 	if err != nil {

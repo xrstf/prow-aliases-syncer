@@ -132,7 +132,7 @@ func (c *Client) getRepositoriesAndBranches(org string, ignoredUsers []string, p
 	c.log.WithFields(logrus.Fields{
 		"org":    org,
 		"cursor": string(cursor),
-	}).Debugf("GetRepositoriesAndBranches()")
+	}).Debug("getRepositoriesAndBranches()")
 
 	// igore errors because a missing file in a branch would cause an error
 	// and we have no option to introspect the error
