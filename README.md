@@ -1,9 +1,16 @@
-# prow-aliases-syncer
+# Migration note
+
+> [!IMPORTANT]
+> `prow-aliases-syncer` has been migrated to [codeberg.org/xrstf/prow-aliases-syncer](https://codeberg.org/xrstf/prow-aliases-syncer).
+
+---
+
+## prow-aliases-syncer
 
 This repository contains a Go program to synchronize GitHub teams to the
 `OWNERS_ALIASES` file used by Prow.
 
-## Installation
+### Installation
 
 You can download a binary for the [latest release on GitHub](https://github.com/xrstf/prow-aliases-syncer/releases)
 or install it via Go:
@@ -12,7 +19,7 @@ or install it via Go:
 go install go.xrstf.de/prow-aliases-syncer
 ```
 
-## Usage
+### Usage
 
 ```
 Usage of _build/prow-aliases-syncer:
@@ -38,6 +45,6 @@ $ export GITHUB_TOKEN=ghp_....
 $ prow-aliases-syncer --org myorg --strict --branch main --branch 'release/*'
 ```
 
-## License
+### License
 
 MIT
